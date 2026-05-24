@@ -46,3 +46,20 @@ print(dataset[100])
 
 
 dataLoader = DataLoader(dataset, batch_size=32, shuffle=True)
+
+
+
+class SimpleCardClassifier(nn.Module):
+  def __init__(self, num_classes=53):
+    super(SimpleCardClassifier, self).__init__()
+    self.base_model = timm.create_model('efficientnet_b0', pretrained=True)
+    ennet_out_size = 1280
+    self.classifier = nn.Linear(ennet_out_size, num_classes)
+
+  def forward(self, x):
+    x = self.features(x)
+    output = self.classifier(x)
+    return output
+
+
+model = SimpleCardClassifier()
