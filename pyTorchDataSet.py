@@ -32,4 +32,14 @@ dataset = PlayingCardDataset(data_dir="/home/abdulaal/AI/data/train")
 
 
 
-print(len(dataset))
+dataDir = "/home/abdulaal/AI/data/train"
+targetClass = {v: k for k, v in ImageFolder(dataDir).class_to_idx.items()}
+
+
+transform = transforms.Compose([
+  transforms.Resize((128, 128)),
+  transforms.ToTensor(),
+])
+
+dataset = PlayingCardDataset(dataDir, transform)
+print(dataset[100])
