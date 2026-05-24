@@ -29,7 +29,7 @@ class PlayingCardDataset(Dataset):
     return self.data.classes
   
 dataset = PlayingCardDataset(data_dir="/home/abdulaal/AI/data/train")
-
+print(dataset[100])
 
 
 dataDir = "/home/abdulaal/AI/data/train"
@@ -43,3 +43,6 @@ transform = transforms.Compose([
 
 dataset = PlayingCardDataset(dataDir, transform)
 print(dataset[100])
+
+
+dataLoader = DataLoader(dataset, batch_size=32, shuffle=True)
