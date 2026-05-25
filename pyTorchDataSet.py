@@ -32,7 +32,7 @@ dataset = PlayingCardDataset(data_dir="/home/abdulaal/AI/data/train")
 print(dataset[100])
 
 
-dataDir = "/home/abdulaal/AI/data/train"
+dataDir = "data/train"
 targetClass = {v: k for k, v in ImageFolder(dataDir).class_to_idx.items()}
 
 
@@ -45,21 +45,92 @@ dataset = PlayingCardDataset(dataDir, transform)
 print(dataset[100])
 
 
-dataLoader = DataLoader(dataset, batch_size=32, shuffle=True)
-
-
 
 class SimpleCardClassifier(nn.Module):
   def __init__(self, num_classes=53):
     super(SimpleCardClassifier, self).__init__()
     self.base_model = timm.create_model('efficientnet_b0', pretrained=True)
+    self.features = nn.Sequential(*list(self.base_model.children())[:-1])
+
     ennet_out_size = 1280
     self.classifier = nn.Linear(ennet_out_size, num_classes)
+    self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(ennet_out_size, num_classes)
+        )
 
   def forward(self, x):
     x = self.features(x)
     output = self.classifier(x)
     return output
 
-
+dataLoader = DataLoader(dataset, batch_size=32, shuffle=True)
 model = SimpleCardClassifier()
+for images, labels in dataLoader:
+  break
+
+exampleOutput = model(images)
+
+print(exampleOutput.shape) # batchsize + num classes
+#loss function
+criterion = nn.CrossEntropyLoss()
+#optimizer
+optimizer = optim.Adam(model.parameters(), lr=0.01)
+
+criterion(exampleOutput, labels)
+
+transform = transforms.Compose([
+  transforms.Resize((128, 128)),
+  transforms.ToTensor(),
+])
+
+
+trainFolder = "data/train"
+validFolder = "data/valid"
+testFolder = "data/test"
+
+
+trainData = PlayingCardDataset(trainFolder, transform=transform)
+validData = PlayingCardDataset(validFolder, transform=transform)
+testData = PlayingCardDataset(testFolder, transform=transform)
+
+trainLoader = DataLoader(trainData, batch_size=32, shuffle=True)
+validLoader = DataLoader(validData, batch_size=32, shuffle=False)
+TestLoader = DataLoader(testData, batch_size=32, shuffle=False)
+
+numEpoch = 5
+trainLosses, valLosses = [], []
+
+model = SimpleCardClassifier(num_classes=53)
+
+for epoch in range(numEpoch):
+
+  model.train()
+  runningLoss = 0.0
+  for images, labels in trainLoader:
+    optimizer.zero_grad()
+    outputs = model(images)
+    loss = criterion(outputs, labels)
+    loss.backward()
+    optimizer.step()
+    runningLoss += loss.item() + labels.size(0)
+  
+  trainLoss = runningLoss / len(trainLoader.dataset)
+  trainLosses.append(trainLoss)
+
+  model.eval()
+  runningLoss = 0.0
+  with torch.no_grad():
+    for images, labels, in validLoader:
+      outputs = model(images)
+      loss = criterion(outputs, labels)
+      runningLoss = loss.item() + labels.size(0)
+    valLoss = runningLoss / len(validLoader.dataset)
+    valLosses.append(valLoss)
+    print(f"Epoch {epoch + 1}/{numEpoch} - Train loss: {trainLoss}, Valid loss: {valLoss}")
+
+plt.plot(trainLosses, label='Training loss')
+plt.plot(valLosses, label='Validation loss')
+plt.legend()
+plt.title("Loss over epochs")
+plt.show()
